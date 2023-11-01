@@ -94,6 +94,7 @@ export default {
         },
         selectSparePart(sparePart) {
             this.selectedSpareParts = useXorBy(this.selectedSpareParts, [sparePart])
+            console.log(this.selectedSpareParts)
         }
     },
     watch: {
@@ -210,7 +211,8 @@ export default {
                                                 class="absolute bottom-0 z-20 m-0 pb-4 ps-4 transition duration-300 ease-in-out group-hover:-translate-y-1 group-hover:translate-x-3 group-hover:scale-110">
                                                 <h1 class="font-serif text-2xl font-bold ">
                                                     {{ item.name }} {{ item.additional_info ?? "" }}
-                                                    <span v-if="useIncludes(selectedSpareParts.map(m => m.id), item.id)">
+                                                    <span
+                                                        v-if="useIncludes(selectedSpareParts.map(sp => sp.p_id), item.p_id)">
                                                         <Icon name="fe:check" size="24" color="green" />
                                                     </span>
                                                 </h1>
