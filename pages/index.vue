@@ -9,7 +9,7 @@ export default {
 </script>
 
 <template>
-    <container fluid>
+    <container fluid v-if="true">
         <Swiper :modules="[SwiperAutoplay, SwiperNavigation, SwiperPagination]" pagination navigation :slides-per-view="1"
             :loop="true" effect="fade" :autoplay="{
                 delay: 8000,

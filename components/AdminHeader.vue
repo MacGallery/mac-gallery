@@ -2,9 +2,11 @@
 export default {
     setup() {
         const { isCollapsed, toggle } = useSidebar();
+        const settingStore = useSettingStore()
         return {
             isCollapsed,
-            toggle
+            toggle,
+            settingStore
         }
     }
 }
@@ -18,6 +20,6 @@ export default {
                 <Icon name="line-md:menu-to-close-transition" size="24" v-else />
             </el-button>
         </ClientOnly>
-        <dark-mode-toggler></dark-mode-toggler>
+        <dark-mode-toggler v-if="settingStore.settings.site_enable_dark_mode"></dark-mode-toggler>
     </el-header>
 </template>

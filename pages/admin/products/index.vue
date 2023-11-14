@@ -7,8 +7,7 @@
                     Product</el-button>
             </div>
         </template>
-        <TestUTable selectable ref="productTable" base-url="/products" :columns="columns" identifier="id" show-table
-            show-form default-sort="created_at" default-direction="desc" :form-fields="formFields" :actions="actions">
+        <TestUTable ref="productTable" v-bind="products">
             <template #column-product-name="{ record }">
                 <div class="flex items-center gap-3">
                     <el-image class="!flex justify-center items-center shrink-0 rounded-full" :src="record.image"
@@ -40,121 +39,127 @@
 export default {
     data() {
         return {
-            columns: [
-                {
-                    name: 'product-name',
-                    label: "Name",
-                    prop: 'name',
-                    sortable: 'custom',
-                },
-                {
-                    name: 'category-id',
-                    label: "Category",
-                    prop: 'category.name',
-                    filters: [],
-                    filterMultiple: false,
-                    columnKey: 'product_category_id'
-                },
-                {
-                    name: 'visible',
-                    label: 'Visible',
-                    prop: 'visible',
-                    columnKey: 'visible',
-                    filters: [
-                        {
-                            text: 'Visible',
-                            value: 1
-                        },
-                        {
-                            text: 'Hidden',
-                            value: 0,
-                        }
-                    ],
-                    filterMultiple: false,
-                },
-                {
-                    name: 'created_at',
-                    label: 'Created at',
-                    prop: 'created_at',
-                    sortable: 'custom',
-                    type: 'datetime',
-                }
-            ],
-            actions: {
-                store: true,
-                update: true,
-                delete: true,
-                view: true,
-                bulkDelete: true,
-            },
-            formFields: [
-                {
-                    formItem: {
+            products: {
+                baseUrl: '/products',
+                columns: [
+                    {
+                        name: 'product-name',
+                        label: "Name",
                         prop: 'name',
-                        label: 'Name',
-                        labelWidth: 150,
+                        sortable: 'custom',
                     },
-                    input: {
-                        placeholder: 'Product Name',
-                    }
-                },
-                {
-                    formItem: {
-                        prop: 'product_category_id',
-                        label: 'Category',
-                        labelWidth: 150,
+                    {
+                        name: 'category-id',
+                        label: "Category",
+                        prop: 'category.name',
+                        filters: [],
+                        filterMultiple: false,
+                        columnKey: 'product_category_id'
                     },
-                    input: {
-                        placeholder: 'Select category',
-                        type: 'select',
-                        options: []
-                    }
-                },
-                {
-                    formItem: {
-                        prop: 'description',
-                        label: 'Description',
-                        labelWidth: 150,
-                    },
-                    input: {
-                        placeholder: 'Description',
-                        type: 'textarea',
-                        rows: 2
-                    }
-                },
-                {
-                    formItem: {
-                        prop: 'visible',
+                    {
+                        name: 'visible',
                         label: 'Visible',
-                        labelWidth: 150,
+                        prop: 'visible',
+                        columnKey: 'visible',
+                        filters: [
+                            {
+                                text: 'Visible',
+                                value: 1
+                            },
+                            {
+                                text: 'Hidden',
+                                value: 0,
+                            }
+                        ],
+                        filterMultiple: false,
                     },
-                    input: {
-                        type: 'switch',
-                        default: true,
+                    {
+                        name: 'created_at',
+                        label: 'Created at',
+                        prop: 'created_at',
+                        sortable: 'custom',
+                        type: 'datetime',
                     }
+                ],
+                showTable: true,
+                selectable: true,
+                actions: {
+                    store: true,
+                    update: true,
+                    delete: true,
+                    view: true,
+                    bulkDelete: true,
                 },
-                {
-                    formItem: {
-                        prop: 'image',
-                        label: 'Image',
-                        labelWidth: 150,
+                formFields: [
+                    {
+                        formItem: {
+                            prop: 'name',
+                            label: 'Name',
+                            labelWidth: 150,
+                        },
+                        input: {
+                            placeholder: 'Product Name',
+                        }
                     },
-                    input: {
-                        type: 'image',
-                        listType: 'picture-card',
-                        multiple: false,
-                        autoUpload: false,
-                        limit: 1,
-                    }
-                },
-            ]
+                    {
+                        formItem: {
+                            prop: 'product_category_id',
+                            label: 'Category',
+                            labelWidth: 150,
+                        },
+                        input: {
+                            placeholder: 'Select category',
+                            type: 'select',
+                            options: []
+                        }
+                    },
+                    {
+                        formItem: {
+                            prop: 'description',
+                            label: 'Description',
+                            labelWidth: 150,
+                        },
+                        input: {
+                            placeholder: 'Description',
+                            type: 'textarea',
+                            rows: 2
+                        }
+                    },
+                    {
+                        formItem: {
+                            prop: 'visible',
+                            label: 'Visible',
+                            labelWidth: 150,
+                        },
+                        input: {
+                            type: 'switch',
+                            default: true,
+                        }
+                    },
+                    {
+                        formItem: {
+                            prop: 'image',
+                            label: 'Image',
+                            labelWidth: 150,
+                        },
+                        input: {
+                            type: 'image',
+                            listType: 'picture-card',
+                            multiple: false,
+                            autoUpload: false,
+                            limit: 1,
+                        }
+                    },
+                ],
+                showForm: true,
+            }
         }
     },
     mounted() {
         $uFetch('/product-categories')
             .then((response) => {
-                this.formFields[1].input.options = response.data.map(({ id, name }) => { return { text: name, value: id } })
-                this.columns[1].filters = response.data.map(({ id, name }) => { return { text: name, value: id } })
+                this.products.formFields[1].input.options = response.data.map(({ id, name }) => { return { text: name, value: id } })
+                this.products.columns[1].filters = response.data.map(({ id, name }) => { return { text: name, value: id } })
             })
     },
     setup() {

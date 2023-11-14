@@ -14,10 +14,21 @@
                 <el-menu-item index="/products">Products</el-menu-item>
                 <el-menu-item index="/about-us">About Us</el-menu-item>
                 <el-menu-item index="/contacts">Contacts</el-menu-item>
-                <li>
+                <li v-if="settingStore.settings.site_enable_dark_mode">
                     <dark-mode-toggler />
                 </li>
             </el-menu>
         </container>
     </el-header>
 </template>
+
+<script>
+export default {
+    setup() {
+        const settingStore = useSettingStore()
+        return {
+            settingStore
+        }
+    }
+}
+</script>

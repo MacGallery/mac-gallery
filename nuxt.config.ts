@@ -1,20 +1,26 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   devtools: { enabled: true },
+  routeRules: {
+    '/admin/**': {
+      ssr: false,
+    }
+  },
   modules: [
     '@element-plus/nuxt',
     '@vueuse/nuxt',
     '@nuxt/image',
     '@nuxtjs/tailwindcss',
+    '@pinia/nuxt',
     // '@nuxtjs/ngrok',
 
     'nuxt-icon',
     'nuxt-swiper',
     "nuxt-lodash",
   ],
-  buildModules: [
-    '@nuxtjs/moment',
-  ],
+  typescript: {
+    typeCheck: false
+  },
   css: ['~/assets/scss/index.scss'],
   components: true,
   // ngrok: {

@@ -1,6 +1,4 @@
 <script>
-// import { debounce } from 'nuxt-lodash/dist/runtime/lodash';
-
 export default {
     data() {
         return {
@@ -24,6 +22,19 @@ export default {
     },
     created() {
         this.fetchCategories()
+    },
+    setup() {
+        const moneyFormat = new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+
+            // These options are needed to round to whole numbers if that's what you want.
+            minimumFractionDigits: 0, // (this suffices for whole numbers, but will print 2500.10 as $2,500.1)
+            maximumFractionDigits: 0, // (causes 2500.99 to be printed as $2,501)
+        });
+        return {
+            moneyFormat
+        }
     },
     methods: {
         back() {
@@ -71,18 +82,6 @@ export default {
                 this.fetchSpareParts()
             }
         },
-        // fetchvariants() {
-        //     this.isLoadingVariant = true;
-        //     $uFetch(`/products/${this.selectedProduct.id}/variants`)
-        //         .then((response) => {
-        //             this.variants = response.data
-        //             this.isLoadingVariant = false;
-        //         })
-        // },
-        // selectVariant(variantId) {
-        //     this.selectedVariantId = variantId
-        //     this.fetchSpareParts()
-        // },
         fetchSpareParts() {
             this.spareParts = [];
             this.isLoadingSparePart = true;
@@ -95,6 +94,17 @@ export default {
         selectSparePart(sparePart) {
             this.selectedSpareParts = useXorBy(this.selectedSpareParts, [sparePart])
             console.log(this.selectedSpareParts)
+        },
+        getSummaries(param) {
+            const { columns, data } = param
+            const sums = [];
+            sums[0] = 'Total';
+            sums[1] = data.map((record) => Number(record.service_price));
+            sums[1] = `${this.moneyFormat.format(sums[1].reduce((prev, next) => prev + next, 0))}`;
+            return sums
+        },
+        formatter(row, column, cellValue, index) {
+            return this.moneyFormat.format(cellValue);
         }
     },
     watch: {
@@ -169,12 +179,10 @@ export default {
                                 <el-option v-for="item in variants" :key="item.id" :label="item.name" :value="item.id" />
                             </el-select> -->
                         </div>
-                        <el-table :data="selectedSpareParts" v-if="selectedSpareParts.length" show-summary sum-text="Total">
+                        <el-table :data="selectedSpareParts" v-if="selectedSpareParts.length" show-summary sum-text="Total"
+                            :summary-method="getSummaries">
                             <el-table-column label="Name" prop="name"></el-table-column>
-                            <el-table-column label="Price" prop="service_price"></el-table-column>
-                            <!-- <template #append>
-
-                            </template> -->
+                            <el-table-column label="Price" prop="service_price" :formatter="formatter"></el-table-column>
                         </el-table>
                     </el-card>
                 </div>

@@ -18,7 +18,7 @@
                         </template>
                     </el-dropdown>
                 </div>
-                <el-input v-model="table.params.q" class="max-w-xs m-2" type="search"
+                <el-input v-if="searchable" v-model="table.params.q" class="max-w-xs m-2" type="search"
                     :placeholder="`Search ${useUpperFirst(title) ?? ''}`">
                     <template #prefix>
                         <Icon name="fe:search" />
@@ -31,8 +31,8 @@
                 :default-sort="{ prop: defaultSort, order: defaultDirection == 'asc' ? 'ascending' : 'descending' }"
                 v-loading="table.loading">
                 <el-table-column type="selection" v-if="selectable && (actions.bulkDelete)" />
-                <el-table-column v-bind="column" :formatter="column.type == 'datetime' ? dateTimeFormatter : null"
-                    v-for="(column, index) in columns" :key="index">
+                <el-table-column v-bind="column" :formatter="getFormatter(column.type)" v-for="(column, index) in columns"
+                    :key="index">
                     <template #default="scope" v-if="$slots[`column-${column.name}`]">
                         <slot :name="`column-${column.name}`" :record="scope.row" />
                     </template>
@@ -55,6 +55,9 @@
                         </el-dropdown>
                     </template>
                 </el-table-column>
+                <template #append v-if="$slots['append']">
+                    <slot name="append" />
+                </template>
             </el-table>
             <el-divider></el-divider>
             <el-pagination v-if="paginate" v-model:current-page="table.params.page"
@@ -64,90 +67,106 @@
                 <div class="w-full"></div>
             </el-pagination>
         </div>
-        <Teleport to="body" v-if="showForm">
-            <el-dialog :title="`${useUpperFirst(form.mode)} ${useUpperFirst(title) ?? ''}`" v-model="form.show" align-center
-                destroy-on-close>
-                <el-form :model="formData" ref="formRef">
-                    <el-form-item v-bind="formField.formItem" v-for="(formField, index) in formFields" :key="index">
-                        <el-select class="w-full" v-if="formField.input.type == 'select'"
-                            v-model="formData[formField.formItem.prop]" v-bind="formField.input">
-                            <el-option :label="option.text" :value="option.value"
-                                v-for="(option, index) in formField.input.options" :key="index"></el-option>
-                        </el-select>
-                        <el-switch v-else-if="formField.input.type == 'switch'" v-bind="formField.input"
-                            v-model="formData[formField.formItem.prop]"></el-switch>
+        <ClientOnly>
+            <Teleport to="body" v-if="showForm">
+                <el-dialog :title="`${useUpperFirst(form.mode)} ${useUpperFirst(title) ?? ''}`" v-model="form.show"
+                    align-center destroy-on-close>
+                    <el-form :model="formData" ref="formRef">
+                        <el-form-item v-bind="formField.formItem" v-for="(formField, index) in formFields" :key="index">
+                            <el-select class="w-full" v-if="formField.input.type == 'select'"
+                                v-model="formData[formField.formItem.prop]" v-bind="formField.input">
+                                <el-option :label="option.text" :value="option.value"
+                                    v-for="(option, index) in formField.input.options" :key="option.value"></el-option>
+                            </el-select>
+                            <el-switch v-else-if="formField.input.type == 'switch'" v-bind="formField.input"
+                                v-model="formData[formField.formItem.prop]"></el-switch>
 
-                        <el-upload v-else-if="formField.input.type == 'image' && !formField.input.multiple"
-                            class="overflow-hidden" ref="singleUploadRef" v-bind="formField.input" :show-file-list="false"
-                            :auto-upload="false"
-                            :on-change="(file, uploadFiles) => handleOnPreview(file, uploadFiles, formField)"
-                            :on-exceed="(files, uploadFiles) => handleOnExceed(files, uploadFiles, formField)">
-                            <img v-if="formData[formField.formItem.prop]"
-                                :src="typeof (formData[formField.formItem.prop]) == 'string' ? formData[formField.formItem.prop] : formData[formField.formItem.prop].url"
-                                class="avatar" />
-                            <!-- {{ formData[formField.formItem.prop] }} -->
-                            <Icon name="line-md:plus" siz e="24" />
-                        </el-upload>
+                            <el-upload v-else-if="formField.input.type == 'image'" class="overflow-hidden"
+                                ref="imageUploadRef" v-bind="formField.input" :show-file-list="false" :auto-upload="false"
+                                :limit="1"
+                                :on-change="(file, uploadFiles) => imageHandleOnChange(file, uploadFiles, formField)"
+                                :on-exceed="(files, uploadFiles) => imageHandleOnExceed(files, uploadFiles, formField)">
+                                <img v-if="formData[formField.formItem.prop]"
+                                    :src="typeof (formData[formField.formItem.prop]) == 'string' ? formData[formField.formItem.prop] : formData[formField.formItem.prop].url"
+                                    class="avatar" />
+                                <!-- {{ formData[formField.formItem.prop] }} -->
+                                <Icon name="line-md:plus" size="24" v-if="!formData[formField.formItem.prop]" />
+                            </el-upload>
 
-                        <el-input v-else v-bind="formField.input" v-model="formData[formField.formItem.prop]" />
-                    </el-form-item>
-                    <!-- <el-form-item prop="name" label="Name" :label-width="150">
-                        <el-input v-model="formData.name" autocomplete="off" placeholder="Product Name" />
-                    </el-form-item>
-                    <el-form-item prop="product_category_id" label="Product Category" :label-width="150">
-                        <el-select v-model="formData.product_category_id" class="w-full"
-                            placeholder="Please select a product category">
-                            <el-option v-for="(category, index) in productCategories" :key="index" :label="category.text"
-                                :value="category.value" />
-                        </el-select>
-                    </el-form-item>
-                    <el-form-item prop="description" label="Descriptions" :label-width="150">
-                        <el-input v-model="formData.description" :rows="2" type="textarea" placeholder="Please input" />
-                    </el-form-item>
-                    <el-form-item prop="visible" label="Visible" :label-width="150">
-                        <el-switch v-model="formData.visible" />
-                    </el-form-item>
-                    <el-form-item prop="image" label="Image" :label-width="150">
-                        <el-upload ref="image" v-model:file-list="formData.image" :auto-upload="false"
-                            list-type="picture-card" :on-preview="handlePictureCardPreview" :on-remove="handleRemove"
-                            :limit="1" :on-exceed="handleExceed">
-                            <Icon name="line-md:plus" size="24" />
-                        </el-upload>
-                    </el-form-item> -->
-                </el-form>
-                <template #footer>
-                    <span class="dialog-footer">
-                        <el-button @click="closeDialog">Cancel</el-button>
-                        <el-button :loading="form.loading" type="primary"
-                            @click="form.mode == 'edit' ? onUpdate() : onStore()">
-                            {{ form.mode == 'edit' ? 'Update' : 'Submit' }}
-                        </el-button>
-                    </span>
-                </template>
-            </el-dialog>
-        </Teleport>
+                            <el-upload v-model:file-list="formData[formField.formItem.prop]"
+                                v-else-if="formField.input.type == 'images'" list-type="picture-card" :auto-upload="false"
+                                :on-preview="imagesHandleOnPreview">
+                                <el-button text>
+                                    <Icon name="fe:plus" size="24" />
+                                </el-button>
+                                <Teleport to="body">
+                                    <el-dialog v-model="form.imagePreviewShow">
+                                        <img w-full :src="form.imagePreviewUrl" alt="Preview Image" />
+                                    </el-dialog>
+                                </Teleport>
+                            </el-upload>
+                            <el-input-number v-else-if="formField.input.type == 'number'"
+                                v-model="formData[formField.formItem.prop]" controls-position="right" class="!w-full">
+                            </el-input-number>
+                            <el-input v-else v-bind="formField.input" v-model="formData[formField.formItem.prop]"
+                                :formatter="formField.input.format == 'money' ? moneyInputFormatter : null"
+                                :parser="formField.input.format == 'money' ? moneyInputParser : null" />
+                        </el-form-item>
+                    </el-form>
+                    <template #footer>
+                        <span class="dialog-footer">
+                            <el-button @click="closeDialog">Cancel</el-button>
+                            <el-button :loading="form.loading" type="primary"
+                                @click="form.mode == 'edit' ? onUpdate() : onStore()">
+                                {{ form.mode == 'edit' ? 'Update' : 'Submit' }}
+                            </el-button>
+                        </span>
+                    </template>
+                </el-dialog>
+            </Teleport>
+        </ClientOnly>
     </div>
 </template>
 
 <script>
 import { genFileId } from 'element-plus'
 import moment from 'moment';
+import { serialize } from 'object-to-formdata'
 
 export default {
     props: {
-        baseUrl: String,
+        baseUrl: {
+            type: String,
+            required: true,
+        },
         showTable: {
             type: Boolean,
             default: () => false,
         },
-        selectable: Boolean,
-        title: String,
+        selectable: {
+            type: Boolean,
+            default: () => false,
+        },
+        searchable: {
+            type: Boolean,
+            default: () => true,
+        },
+        title: {
+            type: String,
+            default: () => ""
+        },
         columns: {
             type: [Object],
             default: () => [],
         },
-        defaultSort: String,
-        defaultDirection: String,
+        defaultSort: {
+            type: String,
+            default: () => 'created_at',
+        },
+        defaultDirection: {
+            type: String,
+            default: () => 'desc'
+        },
         paginate: {
             type: Boolean,
             default: () => true
@@ -170,7 +189,6 @@ export default {
                 bulkDelete: null,
                 update: null,
                 view: null,
-                viewUrl: null,
             }),
         },
 
@@ -182,10 +200,18 @@ export default {
             type: [Object],
             default: () => [],
         },
+        additionalFormData: {
+            type: Object,
+            default: () => ({})
+        },
         identifier: {
             type: String,
-            required: true
+            default: () => 'id'
         },
+        filters: {
+            type: [Object],
+            default: () => ({})
+        }
     },
     data() {
         return {
@@ -212,23 +238,36 @@ export default {
                 show: false,
                 mode: null,
                 loading: null,
-            }
+                imagePreviewShow: false,
+                imagePreviewUrl: "",
+            },
         }
     },
     setup(props) {
         const formRef = ref()
         const formData = ref({});
         const tableRef = ref();
-        const singleUploadRef = ref()
+        const imageUploadRef = ref()
+
         for (let i of props.formFields) {
-            formData.value[i.formItem.prop] = i.input.default ?? null;
+            formData.value[i.formItem.prop] = i.input.default ?? (i.input.type == 'images' ? [] : null);
         }
+
+        const moneyFormat = new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+
+            // These options are needed to round to whole numbers if that's what you want.
+            minimumFractionDigits: 0, // (this suffices for whole numbers, but will print 2500.10 as $2,500.1)
+            maximumFractionDigits: 0, // (causes 2500.99 to be printed as $2,501)
+        });
 
         return {
             formRef,
             tableRef,
             formData,
-            singleUploadRef
+            imageUploadRef,
+            moneyFormat,
         }
     },
     mounted() {
@@ -241,7 +280,7 @@ export default {
                 this.table.params.page = null
             }
             this.table.loading = true;
-            this.table.params = useDefaults(this.table.params, { sort: this.defaultSort, direction: this.defaultDirection })
+            this.table.params = useDefaults(this.table.params, { sort: this.defaultSort, direction: this.defaultDirection }, { ...this.$props.filters })
 
             $uFetch(this.baseUrl, { params: this.table.params })
                 .then(response => {
@@ -285,6 +324,8 @@ export default {
             if (!this.actions.update)
                 return;
 
+            console.log(record)
+
             this.clearFormData()
             this.form.mode = 'edit'
             this.form.show = true;
@@ -294,7 +335,7 @@ export default {
             if (!this.actions.update)
                 return;
 
-            this.form.loading = true;
+            // this.form.loading = true;
             const url = this.getRouteUrl('update', this.formData)
 
             $uFetch(url, { method: "POST", body: this.getFormData('PUT') }).then((response) => {
@@ -310,7 +351,10 @@ export default {
             })
         },
         onView(record) {
-            this.$router.push(this.actionsUrl.viewUrl ?? `${this.$route.fullPath}/${record.id}`);
+            console.log(record)
+            console.log(this.actionsUrl.view)
+            console.log(this.actionsUrl.view ? `${this.actionsUrl.view}/${record.id}` : `${this.$route.fullPath}/${record.id}`)
+            this.$router.push(this.actionsUrl.view ? `${this.actionsUrl.view}/${record.id}` : `${this.$route.fullPath}/${record.id}`);
         },
         onDelete(record) {
             const url = this.getRouteUrl('delete', record)
@@ -382,11 +426,12 @@ export default {
         },
         clearFormData() {
             for (let i of this.formFields) {
-                this.formData[i.formItem.prop] = i.input.default ?? null
+                this.formData[i.formItem.prop] = i.input.default ?? (i.input.type == 'images' ? [] : null)
             }
         },
         getFormData(method = null) {
-            const formData = new FormData()
+            let formData = new FormData();
+
             for (let i of this.formFields) {
                 if (typeof (this.formData[i.formItem.prop]) == 'boolean') {
                     formData.append(i.formItem.prop, this.formData[i.formItem.prop] ? "1" : "0")
@@ -394,8 +439,22 @@ export default {
                     formData.append(i.formItem.prop, this.formData[i.formItem.prop].raw)
                 } else if ((i.input.type == 'image' && typeof (this.formData[i.formItem.prop]) == 'string') || !this.formData[i.formItem.prop]) {
                     continue;
+                } else if ((i.input.type == 'images')) {
+                    for (let image of this.formData[i.formItem.prop]) {
+                        if (image.raw) {
+                            formData.append(`${i.formItem.prop}[upload][]`, image.raw);
+                        } else {
+                            formData.append(`${i.formItem.prop}[update][]`, JSON.stringify(image));
+                        }
+                    }
                 } else {
                     formData.append(i.formItem.prop, this.formData[i.formItem.prop])
+                }
+                console.log(typeof (this.formData[i.formItem.prop]) instanceof File)
+            }
+            if (method == 'POST') {
+                for (let prop in this.additionalFormData) {
+                    formData.append(prop, this.additionalFormData[prop]);
                 }
             }
             if (method) {
@@ -406,20 +465,25 @@ export default {
         closeDialog() {
             this.form.show = false;
         },
+        imagesHandleOnRemove(uploadFile, uploadFiles) {
+            console.log(uploadFile, uploadFiles)
+        },
+        imagesHandleOnPreview(uploadFile) {
+            console.log(uploadFile)
+            this.form.imagePreviewUrl = uploadFile.url
+            this.form.imagePreviewShow = true
+        },
 
-        handleOnPreview(file, uploadFiles, formField) {
+        imageHandleOnChange(file, uploadFiles, formField) {
             // console.log(files.url)
             this.formData[formField.formItem.prop] = file
             console.log(this.formData[formField.formItem.prop])
         },
-        handleOnExceed(files, uploadFiles, formField) {
-            this.singleUploadRef[0].clearFiles()
-            console.log(files)
-            console.log(uploadFiles)
+        imageHandleOnExceed(files, uploadFiles, formField) {
+            this.imageUploadRef[0].clearFiles()
             const file = files[0]
             file.uid = genFileId()
-            console.log(file)
-            console.log(this.singleUploadRef[0].handleStart(file))
+            this.imageUploadRef[0].handleStart(file)
         },
         selectChange(value) {
             this.table.selectedData = value;
@@ -429,10 +493,39 @@ export default {
         },
 
         // formatter
+        getFormatter(type) {
+            switch (type) {
+                case 'datetime':
+                    return this.dateTimeFormatter
+                case 'number':
+                    return this.numberFormatter
+                case 'money':
+                    return this.moneyFormatter
+                default:
+                    return (row, column, cellValue, index) => {
+                        const defaultValue = this.columns[column.no + (this.selectable ? -1 : 0)].default;
+                        return cellValue || defaultValue;
+                    }
+            }
+        },
         dateTimeFormatter(row, column, cellValue, index) {
             const momentFormat = this.columns[column.no + (this.selectable ? -1 : 0)].momentFormat;
             return moment(cellValue).format(momentFormat ?? 'DD MMM YYYY - HH:mm:ss');
-        }
+        },
+        numberFormatter(row, column, cellValue, index) {
+            const num = parseInt(cellValue)
+            return Number.isInteger(num) ? num : this.columns[column.no + (this.selectable ? -1 : 0)].default;
+        },
+        moneyFormatter(row, column, cellValue, index) {
+            return this.moneyFormat.format(typeof (cellValue) == 'number' ? cellValue : parseInt(cellValue) || 0);
+        },
+        moneyInputFormatter(value) {
+            const num = parseInt(value || 0);
+            return `Rp. ${num}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+        },
+        moneyInputParser(value) {
+            return value.replace(/\R\p\.\s?|(,*)/g, '')
+        },
     },
     watch: {
         'table.params.q': useDebounce(function (value) {

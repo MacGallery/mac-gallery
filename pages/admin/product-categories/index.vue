@@ -3,14 +3,11 @@
         <template #header>
             <div class="card-header flex justify-between">
                 <span>Product Categories</span>
-                <el-button class="button" type="primary" @click="productCategoryTable.onCreate"
-                    v-if="productCategoryTable">New
+                <el-button class="button" type="primary" @click="onCreate" v-if="productCategoryTable">New
                     Product Category</el-button>
             </div>
         </template>
-        <TestUTable selectable title="Product Category" ref="productCategoryTable" base-url="/product-categories"
-            :columns="columns" identifier="id" show-table show-form default-sort="created_at" default-direction="desc"
-            :form-fields="formFields" :actions="actions">
+        <TestUTable v-bind="categories" ref="productCategoryTable">
             <template #column-category-name="{ record }">
                 <div class="flex items-center gap-3">
                     <el-image class="!flex justify-center items-center shrink-0 rounded-full" :src="record.image"
@@ -38,132 +35,111 @@
 }
 </style>
 
-<script >
+<script lang="ts">
+import type { TestUTable } from '#build/components';
+
 export default {
+
     data() {
         return {
-            columns: [
-                {
-                    name: 'category-name',
-                    label: "Name",
-                    prop: 'name',
-                    sortable: 'custom',
-                },
-                // {
-                //     name: 'category-id',
-                //     label: "Category",
-                //     prop: 'category.name',
-                //     filters: [],
-                //     filterMultiple: false,
-                //     columnKey: 'product_category_id'
-                // },
-                {
-                    name: 'visible',
-                    label: 'Visible',
-                    prop: 'visible',
-                    columnKey: 'visible',
-                    filters: [
-                        {
-                            text: 'Visible',
-                            value: 1
-                        },
-                        {
-                            text: 'Hidden',
-                            value: 0,
-                        }
-                    ],
-                    filterMultiple: false,
-                },
-                {
-                    name: 'created_at',
-                    label: 'Created at',
-                    prop: 'created_at',
-                    sortable: 'custom',
-                    type: 'datetime',
-                }
-            ],
-            actions: {
-                store: true,
-                update: true,
-                delete: true,
-                view: true,
-                bulkDelete: true,
-            },
-            formFields: [
-                {
-                    formItem: {
+            categories: {
+                title: "Product Categories",
+                baseUrl: '/product-categories',
+                columns: [
+                    {
+                        name: 'category-name',
+                        label: "Name",
                         prop: 'name',
-                        label: 'Name',
-                        labelWidth: 150,
+                        sortable: 'custom',
                     },
-                    input: {
-                        placeholder: 'Category Name',
-                    }
-                },
-                // {
-                //     formItem: {
-                //         prop: 'product_category_id',
-                //         label: 'Category',
-                //         labelWidth: 150,
-                //     },
-                //     input: {
-                //         placeholder: 'Select category',
-                //         type: 'select',
-                //         options: []
-                //     }
-                // },
-                // {
-                //     formItem: {
-                //         prop: 'description',
-                //         label: 'Description',
-                //         labelWidth: 150,
-                //     },
-                //     input: {
-                //         placeholder: 'Description',
-                //         type: 'textarea',
-                //         rows: 2
-                //     }
-                // },
-                {
-                    formItem: {
-                        prop: 'visible',
+                    {
+                        name: 'visible',
                         label: 'Visible',
-                        labelWidth: 150,
+                        prop: 'visible',
+                        columnKey: 'visible',
+                        filters: [
+                            {
+                                text: 'Visible',
+                                value: 1
+                            },
+                            {
+                                text: 'Hidden',
+                                value: 0,
+                            }
+                        ],
+                        filterMultiple: false,
                     },
-                    input: {
-                        type: 'switch',
-                        default: true,
+                    {
+                        name: 'created_at',
+                        label: 'Created at',
+                        prop: 'created_at',
+                        sortable: 'custom',
+                        type: 'datetime',
                     }
+                ],
+                selectable: true,
+                showTable: true,
+                actions: {
+                    store: true,
+                    update: true,
+                    delete: true,
+                    view: true,
+                    bulkDelete: true,
                 },
-                {
-                    formItem: {
-                        prop: 'image',
-                        label: 'Image',
-                        labelWidth: 150,
+                formFields: [
+                    {
+                        formItem: {
+                            prop: 'name',
+                            label: 'Name',
+                            labelWidth: 150,
+                        },
+                        input: {
+                            placeholder: 'Category Name',
+                        }
                     },
-                    input: {
-                        type: 'image',
-                        listType: 'picture-card',
-                        multiple: false,
-                        autoUpload: false,
-                        limit: 1,
-                    }
-                },
-            ]
+                    {
+                        formItem: {
+                            prop: 'visible',
+                            label: 'Visible',
+                            labelWidth: 150,
+                        },
+                        input: {
+                            type: 'switch',
+                            default: true,
+                        }
+                    },
+                    {
+                        formItem: {
+                            prop: 'image',
+                            label: 'Image',
+                            labelWidth: 150,
+                        },
+                        input: {
+                            type: 'image',
+                            listType: 'picture-card',
+                            multiple: false,
+                            autoUpload: false,
+                            limit: 1,
+                        }
+                    },
+                ],
+                showForm: true,
+            }
         }
     },
     mounted() {
-        // $uFetch('/product-categories')
-        //     .then((response) => {
-        //         this.formFields[1].input.options = response.data.map(({ id, name }) => { return { text: name, value: id } })
-        //         this.columns[1].filters = response.data.map(({ id, name }) => { return { text: name, value: id } })
-        //     })
+        // console.log(this.$refs['productCategoryTable'].onCreate());
     },
     setup() {
         const productCategoryTable = ref();
         return {
             productCategoryTable
         }
+    },
+    methods: {
+        onCreate() {
+            this.productCategoryTable.onCreate()
+        },
     }
 }
 </script>
